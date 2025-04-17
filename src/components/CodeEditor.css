@@ -76,3 +76,42 @@
   background-color: #d1d5db;
 }
 
+/* Dark mode scrollbar styles */
+.dark .file-explorer::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.dark .file-explorer::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+.dark .file-explorer::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Dark mode CodeMirror customizations */
+.cm-s-material.CodeMirror {
+  background-color: #1e1e1e;
+  color: #eeffff;
+}
+
+.cm-s-material .CodeMirror-gutters {
+  background: #1e1e1e;
+  border-right: 1px solid #4a4a4a;
+}
+
+.cm-s-material .CodeMirror-linenumber {
+  color: #616161;
+}
+
+/* Light mode CodeMirror customizations */
+.cm-s-eclipse.CodeMirror {
+  background-color: #ffffff;
+  color: #333;
+}
+
+.cm-s-eclipse .CodeMirror-gutters {
+  background: #f7f7f7;
+  border-right: 1px solid #ddd;
+}
+

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,8 @@ import "codemirror/addon/fold/indent-fold";
 import "codemirror/addon/fold/markdown-fold";
 import "codemirror/addon/fold/comment-fold";
 import "codemirror/addon/fold/foldgutter.css";
+import "codemirror/theme/material.css";
+import "codemirror/theme/eclipse.css";
 import { 
   Download, 
   ChevronRight, 
@@ -42,7 +45,9 @@ import {
   LayoutPanelLeft,
   Maximize,
   Minimize,
-  Split
+  Split,
+  Sun,
+  Moon
 } from "lucide-react";
 import "./CodeEditor.css";
 import reactElementToJSXString from "react-element-to-jsx-string";
@@ -52,6 +57,8 @@ import {
   ResizablePanel, 
   ResizableHandle 
 } from "@/components/ui/resizable";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 interface FileData {
   containerId: string;
@@ -68,9 +75,20 @@ const CodeEditorRedux = () => {
   const [fileContent, setFileContent] = useState<string>("");
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if dark mode preference exists in localStorage
+    const savedTheme = localStorage.getItem('code-editor-theme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(prefersDark);
+    }
+    
     if (containers && containers.length > 0) {
       const expanded: Record<string, boolean> = {};
       containers.forEach((container) => {
@@ -79,6 +97,11 @@ const CodeEditorRedux = () => {
       setExpandedFolders(expanded);
     }
   }, [containers]);
+
+  // Save theme preference to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('code-editor-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const getLanguageMode = (fileName: string) => {
     if (fileName.endsWith(".js") || fileName.endsWith(".jsx")) return "jsx";
@@ -143,7 +166,7 @@ export default function ${container.component.type}() {
 
   const saveFile = () => {
     if (!selectedFile) {
-      alert("No file selected");
+      toast.error("No file selected");
       return;
     }
 
@@ -154,7 +177,7 @@ export default function ${container.component.type}() {
       })
     );
 
-    alert("File saved successfully!");
+    toast.success("File saved successfully!");
   };
 
   const handleExport = async () => {
@@ -170,12 +193,21 @@ export default function ${container.component.type}() {
     setShowPreview(!showPreview);
   };
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    toast.success(`Switched to ${!isDarkMode ? 'dark' : 'light'} mode`);
+  };
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="w-72 border-r border-gray-200 overflow-auto bg-white shadow-sm">
-        <div className="p-4 font-bold border-b border-gray-200 flex items-center justify-between bg-gray-50">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'}`}>
+      <div className={`w-72 border-r overflow-auto shadow-sm ${
+        isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+      }`}>
+        <div className={`p-4 font-bold border-b flex items-center justify-between ${
+          isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+        }`}>
           <div className="flex items-center">
-            <Code className="mr-2 text-blue-600" size={18} />
+            <Code className={`mr-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} size={18} />
             <span>Project Files</span>
           </div>
           <div className="flex space-x-2">
@@ -187,11 +219,13 @@ export default function ${container.component.type}() {
                   if (selectedContainer) {
                     dispatch(addNewFile({ folderId: selectedContainer, fileName }));
                   } else {
-                    alert("Please create a folder first");
+                    toast.error("Please create a folder first");
                   }
                 }
               }}
-              className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+              className={`p-1 hover:bg-opacity-20 rounded ${
+                isDarkMode ? 'text-blue-400 hover:bg-blue-800' : 'text-blue-600 hover:bg-blue-100'
+              }`}
               title="Add new file"
             >
               <FilePlus size={16} />
@@ -203,7 +237,9 @@ export default function ${container.component.type}() {
                   dispatch(addNewFolder({ folderName }));
                 }
               }}
-              className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+              className={`p-1 hover:bg-opacity-20 rounded ${
+                isDarkMode ? 'text-blue-400 hover:bg-blue-800' : 'text-blue-600 hover:bg-blue-100'
+              }`}
               title="Add new folder"
             >
               <FolderPlus size={16} />
@@ -216,47 +252,57 @@ export default function ${container.component.type}() {
             containers.map((container) => (
               <div key={container.id} className="mb-1">
                 <div
-                  className={`flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded file-explorer-item ${
-                    selectedFile && selectedFile.containerId === container.id ? "selected-file" : ""
+                  className={`flex items-center p-2 cursor-pointer rounded file-explorer-item ${
+                    selectedFile && selectedFile.containerId === container.id 
+                      ? isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'selected-file' 
+                      : ''
+                  } ${
+                    isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
                   }`}
                   onClick={() => toggleFolder(container.id)}
                 >
                   {expandedFolders[container.id] ? (
-                    <ChevronDown size={16} className="mr-1 text-gray-500" />
+                    <ChevronDown size={16} className={`mr-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   ) : (
-                    <ChevronRight size={16} className="mr-1 text-gray-500" />
+                    <ChevronRight size={16} className={`mr-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   )}
-                  <Folder size={16} className="mr-2 text-blue-500" />
+                  <Folder size={16} className={`mr-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`} />
                   <span className="text-sm">{container.title || `Container ${container.id}`}</span>
                 </div>
 
                 {expandedFolders[container.id] && container.component && (
                   <div
-                    className={`ml-6 p-2 hover:bg-gray-100 cursor-pointer rounded flex items-center file-explorer-item ${
+                    className={`ml-6 p-2 cursor-pointer rounded flex items-center file-explorer-item ${
                       selectedFile &&
                       selectedFile.containerId === container.id &&
                       selectedFile.componentId === container.component.id
-                        ? "selected-file"
-                        : ""
+                        ? isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'selected-file'
+                        : ''
+                    } ${
+                      isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
                     }`}
                     onClick={() => handleFileSelect(container.id, container.component.id)}
                   >
-                    <FileText size={16} className="mr-2 text-gray-500" />
+                    <FileText size={16} className={`mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                     <span className="text-sm">{container.component.type}.jsx</span>
                   </div>
                 )}
               </div>
             ))
           ) : (
-            <div className="p-4 text-gray-500 text-sm">No files available</div>
+            <div className={`p-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No files available</div>
           )}
         </div>
       </div>
 
       <div className="flex flex-col flex-grow">
-        <div className="flex items-center p-3 border-b border-gray-200 bg-white shadow-sm">
+        <div className={`flex items-center p-3 border-b shadow-sm ${
+          isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+        }`}>
           <button
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded mr-2"
+            className={`p-2 rounded mr-2 ${
+              isDarkMode ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
             onClick={() => navigate("/")}
             title="Back to Builder"
           >
@@ -267,12 +313,26 @@ export default function ${container.component.type}() {
             {selectedFile ? (
               <span className="font-medium text-sm">{selectedFile.name}</span>
             ) : (
-              <span className="text-gray-500 text-sm">No file selected</span>
+              <span className={isDarkMode ? 'text-gray-400 text-sm' : 'text-gray-500 text-sm'}>No file selected</span>
             )}
           </div>
 
+          <div className="flex items-center mr-4">
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded ${
+                isDarkMode ? 'text-yellow-200 hover:bg-gray-700' : 'text-blue-600 hover:bg-gray-100'
+              }`}
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+
           <button
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded mr-2"
+            className={`p-2 rounded mr-2 ${
+              isDarkMode ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
             onClick={togglePreview}
             title={showPreview ? "Hide Preview" : "Show Preview"}
           >
@@ -281,7 +341,11 @@ export default function ${container.component.type}() {
 
           <button
             className={`p-2 rounded mr-2 flex items-center ${
-              selectedFile ? "text-blue-600 hover:bg-blue-50" : "text-gray-400"
+              selectedFile 
+                ? isDarkMode 
+                  ? 'text-blue-400 hover:bg-blue-900 hover:bg-opacity-30' 
+                  : 'text-blue-600 hover:bg-blue-50'
+                : isDarkMode ? 'text-gray-600' : 'text-gray-400'
             }`}
             onClick={saveFile}
             disabled={!selectedFile}
@@ -292,7 +356,9 @@ export default function ${container.component.type}() {
           </button>
 
           <button
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+            className={`p-2 rounded ${
+              isDarkMode ? 'text-gray-300 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
             onClick={handleExport}
             title="Export project"
           >
@@ -314,7 +380,7 @@ export default function ${container.component.type}() {
                         extraKeys: { "Ctrl-Space": "autocomplete" },
                         styleActiveLine: true,
                         lineWrapping: true,
-                        theme: "default",
+                        theme: isDarkMode ? "material" : "eclipse",
                         autoCloseBrackets: true,
                         autoCloseTags: true,
                         foldGutter: true,
@@ -346,7 +412,7 @@ export default function ${container.component.type}() {
                     extraKeys: { "Ctrl-Space": "autocomplete" },
                     styleActiveLine: true,
                     lineWrapping: true,
-                    theme: "default",
+                    theme: isDarkMode ? "material" : "eclipse",
                     autoCloseBrackets: true,
                     autoCloseTags: true,
                     foldGutter: true,
@@ -362,10 +428,12 @@ export default function ${container.component.type}() {
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center h-full bg-gray-50 text-gray-500">
-              <Code size={48} className="mb-4 text-gray-300" />
+            <div className={`flex flex-col items-center justify-center h-full ${
+              isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-gray-50 text-gray-500'
+            }`}>
+              <Code size={48} className={isDarkMode ? 'mb-4 text-gray-600' : 'mb-4 text-gray-300'} />
               <p className="text-lg mb-2">Select a file to edit</p>
-              <p className="text-sm text-gray-400">Files are organized by containers</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Files are organized by containers</p>
             </div>
           )}
         </div>
