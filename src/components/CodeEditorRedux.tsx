@@ -65,7 +65,79 @@ interface FileData {
   componentId: string;
   name: string;
   content: string;
+  isExternalFile?: boolean;
 }
+
+// Sample external files for demonstration
+const externalFiles: FileData[] = [
+  {
+    containerId: "external",
+    componentId: "navbar",
+    name: "ResponsiveNavbar.jsx",
+    content: `import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
+
+const ResponsiveNavbar = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  return (
+    <nav className="bg-gray-800 text-white min-w-[50vw]">
+      <div className=" min-w-[50vw] mx-auto px-4 py-3 flex justify-between items-center">
+        {/* Brand Logo */}
+        <div className="text-2xl font-bold">
+          <a href="#">MyWebsite</a>
+        </div>
+
+        {/* Desktop Navigation Links */}
+        <div className="hidden md:flex space-x-6">
+          <a href="#" className="hover:text-gray-400">Home</a>
+          <a href="#" className="hover:text-gray-400">About</a>
+          <a href="#" className="hover:text-gray-400">Services</a>
+          <a href="#" className="hover:text-gray-400">Contact</a>
+        </div>
+
+        {/* Mobile Menu Toggle Button */}
+        <button
+          onClick={toggleMobileMenu}
+          className="md:hidden text-white focus:outline-none"
+          aria-label="Toggle menu"
+        >
+          <FontAwesomeIcon icon={isMobileMenuOpen ? faTimes : faBars} className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-gray-700">
+          <ul className="space-y-2 py-4">
+            <li>
+              <a href="#" className="block px-4 py-2 hover:bg-gray-600">Home</a>
+            </li>
+            <li>
+              <a href="#" className="block px-4 py-2 hover:bg-gray-600">About</a>
+            </li>
+            <li>
+              <a href="#" className="block px-4 py-2 hover:bg-gray-600">Services</a>
+            </li>
+            <li>
+              <a href="#" className="block px-4 py-2 hover:bg-gray-600">Contact</a>
+            </li>
+          </ul>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+export default ResponsiveNavbar;`,
+    isExternalFile: true
+  }
+];
 
 const CodeEditorRedux = () => {
   const dispatch = useDispatch();
@@ -76,6 +148,7 @@ const CodeEditorRedux = () => {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [showExternalFiles, setShowExternalFiles] = useState<boolean>(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -94,6 +167,8 @@ const CodeEditorRedux = () => {
       containers.forEach((container) => {
         expanded[container.id] = true;
       });
+      // Also expand external files folder
+      expanded["external"] = true;
       setExpandedFolders(expanded);
     }
   }, [containers]);
@@ -125,7 +200,16 @@ const CodeEditorRedux = () => {
     }
   };
 
-  const handleFileSelect = (containerId: string, componentId: string) => {
+  const handleFileSelect = (containerId: string, componentId: string, isExternalFile: boolean = false) => {
+    if (isExternalFile) {
+      const externalFile = externalFiles.find(f => f.componentId === componentId);
+      if (externalFile) {
+        setSelectedFile(externalFile);
+        setFileContent(externalFile.content);
+      }
+      return;
+    }
+
     const container = containers.find((c) => c.id === containerId);
     if (container && container.component) {
       let componentCode;
@@ -170,6 +254,17 @@ export default function ${container.component.type}() {
       return;
     }
 
+    if (selectedFile.isExternalFile) {
+      // For external files, we would implement save functionality here
+      // For now, just show a success toast
+      const fileIndex = externalFiles.findIndex(f => f.componentId === selectedFile.componentId);
+      if (fileIndex !== -1) {
+        externalFiles[fileIndex].content = fileContent;
+        toast.success("External file saved (in-memory only)");
+      }
+      return;
+    }
+
     dispatch(
       updateComponentCode({
         containerId: selectedFile.containerId,
@@ -196,6 +291,10 @@ export default function ${container.component.type}() {
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     toast.success(`Switched to ${!isDarkMode ? 'dark' : 'light'} mode`);
+  };
+
+  const toggleExternalFiles = () => {
+    setShowExternalFiles(!showExternalFiles);
   };
 
   return (
@@ -248,12 +347,50 @@ export default function ${container.component.type}() {
         </div>
 
         <div className="p-2 file-explorer">
+          {/* External Files Section */}
+          <div key="external-files" className="mb-1">
+            <div
+              className={`flex items-center p-2 cursor-pointer rounded file-explorer-item ${
+                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => toggleFolder("external")}
+            >
+              {expandedFolders["external"] ? (
+                <ChevronDown size={16} className={`mr-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              ) : (
+                <ChevronRight size={16} className={`mr-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              )}
+              <Folder size={16} className={`mr-2 ${isDarkMode ? 'text-green-400' : 'text-green-500'}`} />
+              <span className="text-sm">External Files</span>
+            </div>
+
+            {expandedFolders["external"] && externalFiles.map((file) => (
+              <div
+                key={file.componentId}
+                className={`ml-6 p-2 cursor-pointer rounded flex items-center file-explorer-item ${
+                  selectedFile &&
+                  selectedFile.isExternalFile &&
+                  selectedFile.componentId === file.componentId
+                    ? isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'selected-file'
+                    : ''
+                } ${
+                  isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
+                onClick={() => handleFileSelect(file.containerId, file.componentId, true)}
+              >
+                <FileText size={16} className={`mr-2 ${isDarkMode ? 'text-green-400' : 'text-green-500'}`} />
+                <span className="text-sm">{file.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Regular Container Files */}
           {containers && containers.length > 0 ? (
             containers.map((container) => (
               <div key={container.id} className="mb-1">
                 <div
                   className={`flex items-center p-2 cursor-pointer rounded file-explorer-item ${
-                    selectedFile && selectedFile.containerId === container.id 
+                    selectedFile && selectedFile.containerId === container.id && !selectedFile.isExternalFile
                       ? isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'selected-file' 
                       : ''
                   } ${
@@ -275,7 +412,8 @@ export default function ${container.component.type}() {
                     className={`ml-6 p-2 cursor-pointer rounded flex items-center file-explorer-item ${
                       selectedFile &&
                       selectedFile.containerId === container.id &&
-                      selectedFile.componentId === container.component.id
+                      selectedFile.componentId === container.component.id && 
+                      !selectedFile.isExternalFile
                         ? isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'selected-file'
                         : ''
                     } ${
@@ -311,7 +449,9 @@ export default function ${container.component.type}() {
 
           <div className="flex-grow mx-2">
             {selectedFile ? (
-              <span className="font-medium text-sm">{selectedFile.name}</span>
+              <span className="font-medium text-sm">
+                {selectedFile.isExternalFile ? "📄 " : ""}{selectedFile.name}
+              </span>
             ) : (
               <span className={isDarkMode ? 'text-gray-400 text-sm' : 'text-gray-500 text-sm'}>No file selected</span>
             )}
@@ -399,7 +539,7 @@ export default function ${container.component.type}() {
                 <ResizableHandle withHandle />
 
                 <ResizablePanel defaultSize={50} minSize={25}>
-                  <CodePreview code={fileContent} fileName={selectedFile.name} />
+                  <CodePreview code={fileContent} fileName={selectedFile.name} isDarkMode={isDarkMode} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             ) : (
