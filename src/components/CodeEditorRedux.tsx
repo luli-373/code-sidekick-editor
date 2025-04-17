@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { useNavigate } from "react-router-dom";
@@ -78,10 +79,12 @@ const CodeEditorRedux = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if dark mode preference exists in localStorage
     const savedTheme = localStorage.getItem('code-editor-theme');
     if (savedTheme) {
       setIsDarkMode(savedTheme === 'dark');
     } else {
+      // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(prefersDark);
     }
@@ -95,6 +98,7 @@ const CodeEditorRedux = () => {
     }
   }, [containers]);
 
+  // Save theme preference to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('code-editor-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
@@ -190,10 +194,8 @@ export default function ${container.component.type}() {
   };
 
   const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    localStorage.setItem('code-editor-theme', newTheme ? 'dark' : 'light');
-    toast.success(`Switched to ${newTheme ? 'dark' : 'light'} mode`);
+    setIsDarkMode(!isDarkMode);
+    toast.success(`Switched to ${!isDarkMode ? 'dark' : 'light'} mode`);
   };
 
   return (
@@ -397,11 +399,7 @@ export default function ${container.component.type}() {
                 <ResizableHandle withHandle />
 
                 <ResizablePanel defaultSize={50} minSize={25}>
-                  <CodePreview 
-                    code={fileContent} 
-                    fileName={selectedFile.name} 
-                    isDarkMode={isDarkMode} 
-                  />
+                  <CodePreview code={fileContent} fileName={selectedFile.name} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             ) : (
