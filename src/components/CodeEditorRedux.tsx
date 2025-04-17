@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { useNavigate } from "react-router-dom";
@@ -29,9 +28,30 @@ import "codemirror/addon/fold/indent-fold";
 import "codemirror/addon/fold/markdown-fold";
 import "codemirror/addon/fold/comment-fold";
 import "codemirror/addon/fold/foldgutter.css";
-import { Download, ChevronRight, ChevronDown, Folder, FileText, Code, Save, ArrowLeft, FilePlus, FolderPlus } from "lucide-react";
+import { 
+  Download, 
+  ChevronRight, 
+  ChevronDown, 
+  Folder, 
+  FileText, 
+  Code, 
+  Save, 
+  ArrowLeft, 
+  FilePlus, 
+  FolderPlus,
+  LayoutPanelLeft,
+  Maximize,
+  Minimize,
+  Split
+} from "lucide-react";
 import "./CodeEditor.css";
 import reactElementToJSXString from "react-element-to-jsx-string";
+import CodePreview from "./CodePreview";
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from "@/components/ui/resizable";
 
 interface FileData {
   containerId: string;
@@ -47,12 +67,11 @@ const CodeEditorRedux = () => {
   const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const [showPreview, setShowPreview] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // Initialize expanded folders when containers change
   useEffect(() => {
     if (containers && containers.length > 0) {
-      // Expand all folders by default
       const expanded: Record<string, boolean> = {};
       containers.forEach((container) => {
         expanded[container.id] = true;
@@ -61,15 +80,13 @@ const CodeEditorRedux = () => {
     }
   }, [containers]);
 
-  // Get language mode based on file extension
   const getLanguageMode = (fileName: string) => {
     if (fileName.endsWith(".js") || fileName.endsWith(".jsx")) return "jsx";
     if (fileName.endsWith(".html")) return "xml";
     if (fileName.endsWith(".css")) return "css";
-    return "jsx"; // Default
+    return "jsx";
   };
 
-  // Convert React element to JSX string safely
   const convertToString = (element: any): string => {
     if (!element) return "";
     if (typeof element === "string") return element;
@@ -85,11 +102,9 @@ const CodeEditorRedux = () => {
     }
   };
 
-  // Handle file selection
   const handleFileSelect = (containerId: string, componentId: string) => {
     const container = containers.find((c) => c.id === containerId);
     if (container && container.component) {
-      // Create a component template if no actual code exists
       let componentCode;
       if (typeof container.component.component === "string") {
         componentCode = container.component.component;
@@ -119,7 +134,6 @@ export default function ${container.component.type}() {
     }
   };
 
-  // Toggle folder expansion
   const toggleFolder = (containerId: string) => {
     setExpandedFolders((prev) => ({
       ...prev,
@@ -127,14 +141,12 @@ export default function ${container.component.type}() {
     }));
   };
 
-  // Save current file
   const saveFile = () => {
     if (!selectedFile) {
       alert("No file selected");
       return;
     }
 
-    // Dispatch action to update the component code in Redux
     dispatch(
       updateComponentCode({
         containerId: selectedFile.containerId,
@@ -145,10 +157,8 @@ export default function ${container.component.type}() {
     alert("File saved successfully!");
   };
 
-  // Export project
   const handleExport = async () => {
     try {
-      // This would be implemented with JSZip
       alert("Export functionality would be implemented here");
     } catch (error) {
       console.error("Export failed:", error);
@@ -156,9 +166,12 @@ export default function ${container.component.type}() {
     }
   };
 
+  const togglePreview = () => {
+    setShowPreview(!showPreview);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* File Explorer */}
       <div className="w-72 border-r border-gray-200 overflow-auto bg-white shadow-sm">
         <div className="p-4 font-bold border-b border-gray-200 flex items-center justify-between bg-gray-50">
           <div className="flex items-center">
@@ -204,7 +217,7 @@ export default function ${container.component.type}() {
               <div key={container.id} className="mb-1">
                 <div
                   className={`flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded file-explorer-item ${
-                    selectedFile && selectedFile.containerId === container.id ? "bg-blue-50" : ""
+                    selectedFile && selectedFile.containerId === container.id ? "selected-file" : ""
                   }`}
                   onClick={() => toggleFolder(container.id)}
                 >
@@ -223,7 +236,7 @@ export default function ${container.component.type}() {
                       selectedFile &&
                       selectedFile.containerId === container.id &&
                       selectedFile.componentId === container.component.id
-                        ? "bg-blue-50"
+                        ? "selected-file"
                         : ""
                     }`}
                     onClick={() => handleFileSelect(container.id, container.component.id)}
@@ -240,9 +253,7 @@ export default function ${container.component.type}() {
         </div>
       </div>
 
-      {/* Editor Area */}
       <div className="flex flex-col flex-grow">
-        {/* Toolbar */}
         <div className="flex items-center p-3 border-b border-gray-200 bg-white shadow-sm">
           <button
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded mr-2"
@@ -259,6 +270,14 @@ export default function ${container.component.type}() {
               <span className="text-gray-500 text-sm">No file selected</span>
             )}
           </div>
+
+          <button
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded mr-2"
+            onClick={togglePreview}
+            title={showPreview ? "Hide Preview" : "Show Preview"}
+          >
+            {showPreview ? <Minimize size={18} /> : <LayoutPanelLeft size={18} />}
+          </button>
 
           <button
             className={`p-2 rounded mr-2 flex items-center ${
@@ -281,32 +300,67 @@ export default function ${container.component.type}() {
           </button>
         </div>
 
-        {/* Editor */}
         <div className="flex-grow overflow-hidden">
           {selectedFile ? (
-            <div className="h-full">
-              <CodeMirror
-                value={fileContent}
-                options={{
-                  mode: getLanguageMode(selectedFile.name),
-                  lineNumbers: true,
-                  extraKeys: { "Ctrl-Space": "autocomplete" },
-                  styleActiveLine: true,
-                  lineWrapping: true,
-                  theme: "default",
-                  autoCloseBrackets: true,
-                  autoCloseTags: true,
-                  foldGutter: true,
-                  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-                }}
-                onBeforeChange={(editor, data, value) => {
-                  setFileContent(value);
-                }}
-                editorDidMount={(editor) => {
-                  editor.refresh();
-                }}
-              />
-            </div>
+            showPreview ? (
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel defaultSize={50} minSize={25}>
+                  <div className="h-full">
+                    <CodeMirror
+                      value={fileContent}
+                      options={{
+                        mode: getLanguageMode(selectedFile.name),
+                        lineNumbers: true,
+                        extraKeys: { "Ctrl-Space": "autocomplete" },
+                        styleActiveLine: true,
+                        lineWrapping: true,
+                        theme: "default",
+                        autoCloseBrackets: true,
+                        autoCloseTags: true,
+                        foldGutter: true,
+                        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                      }}
+                      onBeforeChange={(editor, data, value) => {
+                        setFileContent(value);
+                      }}
+                      editorDidMount={(editor) => {
+                        editor.refresh();
+                      }}
+                    />
+                  </div>
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
+                <ResizablePanel defaultSize={50} minSize={25}>
+                  <CodePreview code={fileContent} fileName={selectedFile.name} />
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            ) : (
+              <div className="h-full">
+                <CodeMirror
+                  value={fileContent}
+                  options={{
+                    mode: getLanguageMode(selectedFile.name),
+                    lineNumbers: true,
+                    extraKeys: { "Ctrl-Space": "autocomplete" },
+                    styleActiveLine: true,
+                    lineWrapping: true,
+                    theme: "default",
+                    autoCloseBrackets: true,
+                    autoCloseTags: true,
+                    foldGutter: true,
+                    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                  }}
+                  onBeforeChange={(editor, data, value) => {
+                    setFileContent(value);
+                  }}
+                  editorDidMount={(editor) => {
+                    editor.refresh();
+                  }}
+                />
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center h-full bg-gray-50 text-gray-500">
               <Code size={48} className="mb-4 text-gray-300" />

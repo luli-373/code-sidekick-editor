@@ -46,3 +46,33 @@
   background-color: rgba(59, 130, 246, 0.1);
   font-weight: 500;
 }
+
+/* Preview Panel Styles */
+.preview-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.preview-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  background-color: white;
+}
+
+/* Resizable Panel Styles */
+.resizer {
+  display: flex;
+  justify-content: center;
+  background-color: #f3f4f6;
+  cursor: col-resize;
+  width: 6px;
+}
+
+.resizer:hover,
+.resizer:active {
+  background-color: #d1d5db;
+}
+
